@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Integra BOM Middleware</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0d0d0d;color:#e0e0e0;font-family:'IBM Plex Sans',sans-serif;min-height:100vh}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-bottom:1px solid #1e1e1e;background:#0a0a0a}
+  .logo{font-family:'IBM Plex Mono',monospace;font-size:14px;color:#fff;letter-spacing:2px}
+  .logo span{color:#4a9eff}
+  .steps{display:flex;gap:0}
+  .step{padding:8px 20px;font-size:12px;letter-spacing:1px;color:#444;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s}
+  .step.active{color:#4a9eff;border-bottom-color:#4a9eff}
+  .step.done{color:#56d364}
+  .step-num{display:inline-block;width:18px;height:18px;border-radius:50%;border:1px solid currentColor;text-align:center;line-height:16px;font-size:10px;margin-right:6px}
+  .main{padding:40px 32px;max-width:1200px;margin:0 auto}
+  h2{font-size:22px;font-weight:600;margin-bottom:6px}
+  .sub{color:#666;font-size:13px;font-family:'IBM Plex Mono',monospace;margin-bottom:24px}
+
+  /* Upload */
+  .upload-zone{border:2px dashed #2a2a2a;border-radius:8px;padding:60px;text-align:center;cursor:pointer;transition:all .2s;background:#111}
+  .upload-zone:hover,.upload-zone.drag{border-color:#4a9eff;background:#111d2a}
+  .upload-zone input{display:none}
+  .upload-icon{font-size:40px;margin-bottom:12px}
+  .upload-zone p{color:#666;font-size:14px}
+  .upload-zone .hint{font-size:12px;color:#444;margin-top:6px;font-family:'IBM Plex Mono',monospace}
+
+  /* Info box */
+  .info-box{background:#111;border:1px solid #1e1e1e;border-left:3px solid #4a9eff;border-radius:4px;padding:14px 18px;margin-bottom:24px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.8;color:#888}
+  .info-box .hl{color:#4a9eff;font-weight:600}
+  .info-box .hl2{color:#56d364;font-weight:600}
+  .info-box .hl3{color:#f0a030;font-weight:600}
+
+  /* Stats bar */
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+  .stat{background:#111;border:1px solid #1e1e1e;border-radius:6px;padding:10px 18px;font-size:13px;display:flex;align-items:center;gap:8px}
+  .stat-num{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#fff}
+  .stat-num.blue{color:#4a9eff}
+  .stat-num.green{color:#56d364}
+  .stat-num.orange{color:#f0a030}
+  .stat-num.purple{color:#b47eff}
+  .stat-label{color:#666;font-size:12px}
+
+  /* Section */
+  .section{margin-bottom:32px}
+  .section-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #1a1a1a}
+  .section-title{font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace}
+  .section-title.laser{color:#4a9eff}
+  .section-title.press{color:#56d364}
+  .section-title.panel{color:#f0a030}
+  .section-title.powder{color:#b47eff}
+  .section-count{font-size:11px;color:#444;font-family:'IBM Plex Mono',monospace}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:8px 10px;color:#444;font-size:11px;letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid #1a1a1a}
+  td{padding:8px 10px;border-bottom:1px solid #141414;vertical-align:middle}
+  tr:hover td{background:#111}
+  .pn{font-family:'IBM Plex Mono',monospace;color:#4a9eff;font-size:12px}
+  .desc{color:#aaa;font-size:12px}
+  .mat{color:#666;font-size:11px;font-family:'IBM Plex Mono',monospace}
+  .calc{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#56d364}
+  .calc.none{color:#444}
+
+  /* Editable input */
+  .edit-input{background:#0d0d0d;border:1px solid #2a2a2a;border-radius:4px;color:#fff;padding:4px 8px;font-family:'IBM Plex Mono',monospace;font-size:12px;width:80px;transition:border .2s}
+  .edit-input:focus{outline:none;border-color:#4a9eff}
+  .edit-input.auto{border-color:#1a3a1a;background:#0d150d;color:#56d364}
+  .auto-tag{font-size:9px;color:#56d364;letter-spacing:1px;margin-left:4px;opacity:.7}
+
+  /* Colour badge */
+  .colour-badge{background:#1a1020;border:1px solid #2a1a3a;border-radius:4px;padding:3px 8px;font-size:11px;color:#b47eff;font-family:'IBM Plex Mono',monospace}
+
+  /* Buttons */
+  .btn{padding:10px 24px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;font-family:'IBM Plex Sans',sans-serif}
+  .btn-primary{background:#4a9eff;color:#000}
+  .btn-primary:hover{background:#6ab0ff}
+  .btn-secondary{background:#1a1a1a;color:#888;border:1px solid #2a2a2a}
+  .btn-secondary:hover{background:#222;color:#fff}
+  .btn-row{display:flex;gap:12px;align-items:center;margin-top:24px}
+
+  /* Download */
+  .download-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+  .dl-card{background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:24px;transition:border .2s}
+  .dl-card:hover{border-color:#4a9eff}
+  .dl-card h3{font-size:14px;font-weight:600;margin-bottom:6px}
+  .dl-card p{color:#666;font-size:12px;font-family:'IBM Plex Mono',monospace;margin-bottom:16px;line-height:1.6}
+  .dl-card .btn{width:100%}
+  .step1-card h3{color:#56d364}
+  .step2-card h3{color:#4a9eff}
+
+  /* Page visibility */
+  .page{display:none}
+  .page.active{display:block}
+
+  /* Loading */
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid #333;border-top-color:#4a9eff;border-radius:50%;animation:spin .6s linear infinite;margin-right:8px;vertical-align:middle}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">● Integra <span>BOM</span> Middleware</div>
+  <div class="steps">
+    <div class="step active" id="nav1"><span class="step-num">1</span>UPLOAD</div>
+    <div class="step" id="nav2"><span class="step-num">2</span>LABOR TIMES</div>
+    <div class="step" id="nav3"><span class="step-num">3</span>DOWNLOAD</div>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- PAGE 1: UPLOAD -->
+  <div class="page active" id="page1">
+    <h2>Upload SolidWorks BOM</h2>
+    <p class="sub">// Drop your SolidWorks BOM export (.xlsx) — no template needed</p>
+    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept=".xlsx">
+      <div class="upload-icon">⬆</div>
+      <p>Click or drag & drop your BOM file</p>
+      <p class="hint">Accepts SolidWorks BOM export (.xlsx)</p>
+    </div>
+    <div id="uploadStatus" style="margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#666"></div>
+  </div>
+
+  <!-- PAGE 2: LABOR TIMES -->
+  <div class="page" id="page2">
+    <h2>Review & Enter Labor Times</h2>
+    <p class="sub" id="laborSub">// Loading...</p>
+
+    <div class="info-box">
+      <span class="hl">i</span>&nbsp; Setup time = <span class="hl">600s (10 min)</span> applied to every operation automatically.<br>
+      <span class="hl">Laser Cutting:</span> speed auto-looked up from material + thickness — override anytime → server calculates (Outer + Inner) ÷ Speed<br>
+      <span class="hl2">Press Brake &amp; Panel Bending:</span> bends pre-filled → server calculates Bends × Sec/Bend<br>
+      <span class="hl3">Powder Coating:</span> labor time + powder (kg) auto-calculated from X × Y dimensions
+    </div>
+
+    <div class="stats" id="statsBar"></div>
+
+    <!-- Laser Table -->
+    <div class="section" id="laserSection">
+      <div class="section-header">
+        <span class="section-title laser">⚡ Laser Cutting</span>
+        <span class="section-count" id="laserCount"></span>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Part</th><th>Description</th><th>Material</th><th>Thick</th>
+          <th>Outer (mm)</th><th>Inner (mm)</th><th>Speed (mm/s)</th><th>Labor Time</th>
+        </tr></thead>
+        <tbody id="laserBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Press Brake Table -->
+    <div class="section" id="pressSection">
+      <div class="section-header">
+        <span class="section-title press">⚙ Press Brake Bending</span>
+        <span class="section-count" id="pressCount"></span>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Part</th><th>Description</th><th>Material</th><th>Thick</th>
+          <th>Bends</th><th>Sec/Bend</th><th>Labor Time</th>
+        </tr></thead>
+        <tbody id="pressBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Panel Bending Table -->
+    <div class="section" id="panelSection">
+      <div class="section-header">
+        <span class="section-title panel">◈ Panel Bending</span>
+        <span class="section-count" id="panelCount"></span>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Part</th><th>Description</th><th>Material</th><th>Thick</th>
+          <th>Bends</th><th>Sec/Bend</th><th>Labor Time</th>
+        </tr></thead>
+        <tbody id="panelBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Powder Coating Table -->
+    <div class="section" id="powderSection">
+      <div class="section-header">
+        <span class="section-title powder">◉ Powder Coating</span>
+        <span class="section-count" id="powderCount"></span>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Part</th><th>Description</th><th>Colour</th>
+          <th>X (mm)</th><th>Y (mm)</th><th>Powder (kg)</th><th>Labor Time</th>
+        </tr></thead>
+        <tbody id="powderBody"></tbody>
+      </table>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="showPage(1)">← Back</button>
+      <button class="btn btn-primary" onclick="showPage(3)">Generate Files →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 3: DOWNLOAD -->
+  <div class="page" id="page3">
+    <h2>Download Import Files</h2>
+    <p class="sub" id="dlSub">// Ready to import into Fulcrum</p>
+    <div class="download-grid">
+      <div class="dl-card step1-card">
+        <h3>Step 1 — Items</h3>
+        <p>All items including assemblies, parts, and PC colour items.<br>Import this first to create all item records.</p>
+        <button class="btn btn-primary" id="dl1Btn">⬇ Download STEP1_Items.xlsx</button>
+      </div>
+      <div class="dl-card step2-card">
+        <h3>Step 2 — BOM + Routing</h3>
+        <p>Full bill of materials, routing operations, setup + labor times, and powder consumption quantities.</p>
+        <button class="btn btn-primary" id="dl2Btn">⬇ Download STEP2_BOM_Routing.xlsx</button>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:24px">
+      <button class="btn btn-secondary" onclick="showPage(2)">← Back</button>
+      <button class="btn btn-secondary" onclick="showPage(1); resetApp()">↺ New BOM</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let sessionId = null;
+let sessionData = null;
+
+function showPage(n) {
+  document.querySelectorAll('.page').forEach((p,i) => p.classList.toggle('active', i===n-1));
+  document.querySelectorAll('.step').forEach((s,i) => {
+    s.classList.toggle('active', i===n-1);
+    s.classList.toggle('done', i<n-1);
+  });
+}
+
+function fmtTime(secs) {
+  if (!secs) return '<span class="calc none">—</span>';
+  const m = Math.floor(secs/60), s = secs%60;
+  return `<span class="calc">${m>0?m+'m ':''}${s}s</span>`;
+}
+
+function fmtKg(kg) {
+  if (!kg) return '<span class="calc none">—</span>';
+  return `<span class="calc">${kg} kg</span>`;
+}
+
+// Upload
+const dz = document.getElementById('dropZone');
+const fi = document.getElementById('fileInput');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fi.addEventListener('change', () => { if(fi.files[0]) handleFile(fi.files[0]); });
+
+function handleFile(file) {
+  const status = document.getElementById('uploadStatus');
+  status.innerHTML = '<span class="spinner"></span> Parsing BOM...';
+  const fd = new FormData();
+  fd.append('file', file);
+  fetch('/upload', {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { status.innerHTML = '❌ ' + data.error; return; }
+      sessionId = data.session_id;
+      sessionData = data;
+      status.innerHTML = `✓ Loaded <strong>${data.top}</strong> — ${data.total} parts`;
+      buildLaborPage(data);
+      showPage(2);
+    })
+    .catch(e => status.innerHTML = '❌ Upload failed: ' + e);
+}
+
+function buildLaborPage(data) {
+  document.getElementById('laborSub').textContent = `// ${data.top} — ${data.total} total parts`;
+
+  // Stats
+  const sb = document.getElementById('statsBar');
+  sb.innerHTML = `
+    <div class="stat"><span class="stat-num">${data.total}</span><span class="stat-label">Total Parts</span></div>
+    <div class="stat"><span class="stat-num blue">${data.laser.length}</span><span class="stat-label">Laser Cut</span></div>
+    <div class="stat"><span class="stat-num green">${data.press.length}</span><span class="stat-label">Press Brake</span></div>
+    <div class="stat"><span class="stat-num orange">${data.panel.length}</span><span class="stat-label">Panel Bending</span></div>
+    <div class="stat"><span class="stat-num purple">${data.powder.length}</span><span class="stat-label">Powder Coat</span></div>
+    <div class="stat"><span class="stat-num">600s</span><span class="stat-label">Setup all ops</span></div>`;
+
+  // Laser
+  document.getElementById('laserCount').textContent = `${data.laser.length} parts`;
+  document.getElementById('laserSection').style.display = data.laser.length ? '' : 'none';
+  const lb = document.getElementById('laserBody');
+  lb.innerHTML = '';
+  data.laser.forEach(p => {
+    const isAuto = p.speed !== null;
+    const laborSecs = calcLaserLabor(p.outer, p.inner, p.speed);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="pn">${p.pn}</td>
+      <td class="desc">${p.desc}</td>
+      <td class="mat">${p.mat||'—'}</td>
+      <td class="mat">${p.thick||'—'}</td>
+      <td class="mat">${p.outer ? p.outer.toFixed(1) : '—'}</td>
+      <td class="mat">${p.inner ? p.inner.toFixed(1) : '—'}</td>
+      <td>
+        <input class="edit-input ${isAuto?'auto':''}" type="number" value="${p.speed||''}" 
+               placeholder="mm/s" data-pn="${p.pn}" data-field="speed" onchange="updateLabor(this)">
+        ${isAuto?'<span class="auto-tag">AUTO</span>':''}
+      </td>
+      <td id="lt_laser_${p.pn}">${fmtTime(laborSecs)}</td>`;
+    lb.appendChild(tr);
+  });
+
+  // Press
+  document.getElementById('pressCount').textContent = `${data.press.length} parts`;
+  document.getElementById('pressSection').style.display = data.press.length ? '' : 'none';
+  buildBendTable('pressBody', data.press, 'Press Brake Bending');
+
+  // Panel
+  document.getElementById('panelCount').textContent = `${data.panel.length} parts`;
+  document.getElementById('panelSection').style.display = data.panel.length ? '' : 'none';
+  buildBendTable('panelBody', data.panel, 'Panel Bending');
+
+  // Powder
+  document.getElementById('powderCount').textContent = `${data.powder.length} parts`;
+  document.getElementById('powderSection').style.display = data.powder.length ? '' : 'none';
+  const pb = document.getElementById('powderBody');
+  pb.innerHTML = '';
+  data.powder.forEach(p => {
+    const kg = p.x && p.y ? calcPowderKg(p.x, p.y) : null;
+    const mins = p.x && p.y ? calcPowderTime(p.x, p.y) : null;
+    const secs = mins ? Math.ceil(mins * 60) : null;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="pn">${p.pn}</td>
+      <td class="desc">${p.desc}</td>
+      <td>${p.colour ? `<span class="colour-badge">${p.colour}</span>` : '<span class="calc none">—</span>'}</td>
+      <td class="mat">${p.x ? p.x.toFixed(1) : '—'}</td>
+      <td class="mat">${p.y ? p.y.toFixed(1) : '—'}</td>
+      <td>${fmtKg(kg ? kg.toFixed(4) : null)}</td>
+      <td>${fmtTime(secs)}</td>`;
+    pb.appendChild(tr);
+  });
+
+  // Download buttons
+  document.getElementById('dl1Btn').onclick = () => window.location = `/download/1/${sessionId}`;
+  document.getElementById('dl2Btn').onclick = () => window.location = `/download/2/${sessionId}`;
+  document.getElementById('dlSub').textContent = `// ${data.top} — ready to import`;
+}
+
+function buildBendTable(bodyId, parts, op) {
+  const tb = document.getElementById(bodyId);
+  tb.innerHTML = '';
+  parts.forEach(p => {
+    const lt = p.bends ? Math.ceil(p.bends * (p.spb||30)) : null;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="pn">${p.pn}</td>
+      <td class="desc">${p.desc}</td>
+      <td class="mat">${p.mat||'—'}</td>
+      <td class="mat">${p.thick||'—'}</td>
+      <td><input class="edit-input auto" type="number" value="${p.bends||''}" 
+                 data-pn="${p.pn}" data-field="bends" onchange="updateLabor(this)"></td>
+      <td><input class="edit-input" type="number" value="${p.spb||30}" 
+                 data-pn="${p.pn}" data-field="spb" onchange="updateLabor(this)"></td>
+      <td id="lt_bend_${p.pn}">${fmtTime(lt)}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function calcLaserLabor(outer, inner, speed) {
+  if (!speed || speed <= 0) return null;
+  return Math.ceil(((outer||0) + (inner||0)) / speed);
+}
+function calcPowderKg(x, y) {
+  return ((x/1000) * (y/1000) * 2) / 5;
+}
+function calcPowderTime(x, y) {
+  if (x * y <= 62500) return 0.5;
+  return 7 * (x/1000) * (y/1000);
+}
+
+function updateLabor(input) {
+  const pn = input.dataset.pn;
+  const field = input.dataset.field;
+  const value = input.value;
+  fetch('/update_labor', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({session_id: sessionId, pn, field, value})
+  })
+  .then(r => r.json())
+  .then(data => {
+    Object.entries(data.labor).forEach(([op, secs]) => {
+      const el = document.getElementById(`lt_laser_${pn}`) || document.getElementById(`lt_bend_${pn}`);
+      if (el) el.innerHTML = fmtTime(secs);
+    });
+  });
+}
+
+function resetApp() {
+  sessionId = null; sessionData = null;
+  document.getElementById('uploadStatus').innerHTML = '';
+  document.getElementById('fileInput').value = '';
+}
+</script>
+</body>
+</html>
