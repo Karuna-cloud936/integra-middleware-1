@@ -182,7 +182,7 @@ ITEM_COLS = ['Item Rev','Number','Description','RevisionNumber','GL Code','GL Co
     'Shipping.TariffCode','Shipping.CountryOfOrigin','Default Location','DimensionUnitOfMeasure',
     'Height','IsDraftItem','IsArchived','UsePartialPieceTracking']
 
-BOM_H = ['ParentNumber','ParentRevisionNumber','ChildNumber','ChildRevisionNumber','Units Required']
+BOM_H = ['ParentNumber','ParentRevisionNumber','ChildNumber','ChildRevisionNumber','Units Required','Nest Width','Nest Length','Units Created','RoutingOperation']
 ROUT_H = ['Number','RevisionNumber','Operation','Order','Equipment','Instructions',
     'Setup Time Type','Setup Time','Setup Time Unit','Labor Time Type','Labor Time','Labor Time Unit',
     'Machine Tracking?','Machine Time Type','Machine Time','Machine Time Unit','Lead Days','Vendor','Cost Option','Cost']
@@ -443,13 +443,13 @@ def download(step, session_id):
         item_data.append(pc_irow(pc))
 
     # Build BOM
-    bom_data = [BOM_H] + [[r['parent'],'',r['child'],'',r['qty']] for r in bom_rows]
+    bom_data = [BOM_H] + [[r['parent'],'',r['child'],'',r['qty'],'','','',''] for r in bom_rows]
     for p in parts:
         if 'Powder Coating' in p['processes'] and p['colour']:
             x = labor[p['pn']]['x']; y = labor[p['pn']]['y']
             powder_kg, _ = calc_powder(x, y)
             if powder_kg:
-                bom_data.append([p['pn'], '', p['colour'], '', powder_kg])
+                bom_data.append([p['pn'], '', p['colour'], '', powder_kg, '', '', '', 'Powder Coating'])
 
     # Build Routing - skip ops that already exist in Fulcrum
     rout_data = [ROUT_H]
